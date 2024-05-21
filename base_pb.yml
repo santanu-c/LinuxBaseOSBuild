@@ -1,1 +1,45 @@
+## A base playbook
+---
+- name: OS build base playbook
+  hosts: "{{ hosts }}"
+
+  vars:
+    deployment_type: default
+    internal_user: 'true'
+    host_count: "{{ ansible_play_hosts_all | length }}"
+
+  pre_tasks:
+    - name: Limit no of hosts to run
+      ansible.builtin.fail:
+        msg: You can only run for max 7 hosts
+      when: host_count | int > 10
+
+    - name: Check if the host is in AWS
+      ansible.builtin.uri:
+        url: http://169.254.169.254/latest/meta-data
+        timeout: 5
+      register: aws_uri_check
+      failed_when: false
+
+    - name: Set in_aws variable
+      ansible.builtin.set_fact:
+        in_aws: "{{ aws_uri_check.status == 200 }}"
+      when: not ansible_check_mode
+
+    - name: Set in_aws variable
+      ansible.builtin.set_fact:
+        in_aws: false
+      when: ansible_check_mode
+
+    - name: Blah Blah
+      ansible.builtin.debug: 
+        msg: "in_aws is set to false as a default in check mode. To enable pass -e in_aws=true"
+      when: ansible_check_mode
+ 
+  roles:
+    # List your roles here...
+    - component_motd
+    - component_selinux
+    - component_bashrc
+    - { role: developer_ec2, when "deployment_type = 'developer'" }
 
