@@ -1,1 +1,35 @@
+---
+- name: Run one role
+  hosts: "{{ target }}"
+
+  vars:
+    deployment_type: default
+    internal_user: 'true'
+    host_count: "{{ ansible_play_hosts_all | length }}"
+
+  pre_tasks:
+    - name: This set always runs
+      tags: preflight
+      block:
+
+      - name: Check if the host belongs to AWS
+        ansible.builtin.uri:
+          url: http://169.254.169.254/latest/meta-data
+          timeout: 5
+        register: aws_uri_check
+        failed_when: false
+
+      - name: Set in_aws variable
+        ansible.builtin.set_fact:
+          in_aws: "{{ aws_uri_check.status == 200 }}"
+        when: not ansible_check_mode
+
+      - name: Set in_aws variable
+        ansible.builtin.set_fact:
+          in_aws: false
+        when: ansible_check_mode
+
+
+  roles:
+    - "{{ role_name }}"
 
